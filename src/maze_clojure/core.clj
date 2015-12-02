@@ -8,8 +8,7 @@
          (vec (for [col (range 0 size)]
                 {:row     row, :col col, :visited? false
                  :bottom? true, :right? true,
-                 :start?  false, :end? false
-                 })))))
+                 :start?  (and (= 0 row) (= 0 col))})))))
 
 (defn possible-neighbors [rooms row col]
   [(get-in rooms [(- row 1) col])
@@ -40,15 +39,15 @@
     (assoc-in rooms [new-row new-col :right?] false)
     ; going right
     (> new-col old-col)
-    (assoc-in rooms [old-row old-col :right?] false)
-    ))
+    (assoc-in rooms [old-row old-col :right?] false)))
 
-(defn get-start [rooms row col]
-  (if (and (= row 0) (= col 0))
-    (let [rooms (assoc-in rooms [row col :start?] true)])))
+(defn set-end-if-necessary [rooms row col]
+  (let [filtered-rooms (filter :end? (flatten rooms))]
+    (if (pos? (count filtered-rooms))
+      rooms
+      (assoc-in rooms [row col :end?] true))))
 
 (defn create-maze [rooms row col]
-  (get-start rooms row col)
   (let [rooms (assoc-in rooms [row col :visited?] true)
         next-room (random-neighbor rooms row col)]
     (if next-room
@@ -58,7 +57,7 @@
             (if (= old-rooms new-rooms)
               old-rooms
               (recur new-rooms)))))
-      rooms)))
+      (set-end-if-necessary rooms row col))))
 
 
 
@@ -71,7 +70,10 @@
     (doseq [row rooms]
       (print "|")
       (doseq [room row]
-        (print (str (if (:bottom? room) "_" " ")
-                    (if (:right? room) "|" " ")
-                    (if (:start? room) "o"))))
+        (print (str (cond
+                      (:start? room) "o"
+                      (:end? room) "x"
+                      (:bottom? room) "_"
+                      :else " ")
+                    (if (:right? room) "|" " "))))
       (println))))
